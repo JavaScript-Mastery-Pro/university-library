@@ -5,7 +5,7 @@ import { neon } from "@neondatabase/serverless";
 
 import { books } from "./schema";
 
-config({ path: ".env.local" });
+config({ path: ".env" });
 
 const sql = neon(process.env.DATABASE_URL!);
 export const db = drizzle({ client: sql });
