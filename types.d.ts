@@ -34,6 +34,8 @@ interface Book {
   createdAt: Date | null;
 }
 
+type FineStatus = "NONE" | "UNPAID" | "PAID" | "WAIVED";
+
 interface BorrowRecord {
   id: string;
   userId: string;
@@ -42,6 +44,11 @@ interface BorrowRecord {
   dueDate: string;
   returnDate: string | null;
   status: string;
+  // Late-fine fields (ADR 0001). Optional until the data-model migration lands;
+  // the UI currently sources these from a placeholder helper (lib/placeholder/fines.ts).
+  fineAmount?: string | null;
+  fineStatus?: FineStatus;
+  fineSettledAt?: string | null;
 }
 
 interface BorrowedBook extends Book {

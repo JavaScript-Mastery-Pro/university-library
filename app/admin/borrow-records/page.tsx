@@ -14,8 +14,10 @@ import Pagination from "@/components/Pagination";
 import BookReceipt from "@/components/BookReceipt";
 
 import Menu from "@/components/admin/Menu";
+import FineStatus from "@/components/FineStatus";
 import { borrowStatuses } from "@/constants";
 import { getBorrowRecords } from "@/lib/admin/actions/book";
+import { getPlaceholderFine } from "@/lib/placeholder/fines";
 
 const Page = async ({ searchParams }: PageProps) => {
   const { query, sort, page } = await searchParams;
@@ -40,6 +42,7 @@ const Page = async ({ searchParams }: PageProps) => {
               <TableHead>Return Date</TableHead>
               <TableHead>Due Date</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Fine</TableHead>
               <TableHead>Receipt</TableHead>
             </TableRow>
           </TableHeader>
@@ -93,6 +96,18 @@ const Page = async ({ searchParams }: PageProps) => {
                     />
                   </TableCell>
                   <TableCell>
+                    {(() => {
+                      const fine = getPlaceholderFine(record.borrow);
+                      return (
+                        <FineStatus
+                          status={fine.status}
+                          amount={fine.amount}
+                          showNone
+                        />
+                      );
+                    })()}
+                  </TableCell>
+                  <TableCell>
                     <BookReceipt
                       btnVariant="admin"
                       {...(record as BorrowedBook)}
@@ -102,7 +117,7 @@ const Page = async ({ searchParams }: PageProps) => {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={6} className="text-center pt-10">
+                <TableCell colSpan={8} className="text-center pt-10">
                   No records found
                 </TableCell>
               </TableRow>

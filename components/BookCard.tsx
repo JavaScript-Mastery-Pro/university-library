@@ -5,6 +5,9 @@ import Image from "next/image";
 import BookCover from "./BookCover";
 import BookReceipt from "./BookReceipt";
 import ReturnBook from "./ReturnBook";
+import FineStatus from "./FineStatus";
+
+import { getPlaceholderFine } from "@/lib/placeholder/fines";
 
 export const NormalBook = ({
   id,
@@ -35,6 +38,9 @@ export const BorrowedBook = (props: BorrowedBook) => {
 
   const isReturned = status === "RETURNED";
   const isOverDue = daysLeft < 0 && status === "BORROWED";
+
+  // Placeholder fine (ADR 0001, sub-task #2) — swapped for stored values at wire-up.
+  const fine = getPlaceholderFine(borrow);
 
   return (
     <li className="borrowed-book">
@@ -104,6 +110,23 @@ export const BorrowedBook = (props: BorrowedBook) => {
 
               <BookReceipt {...props} />
             </div>
+
+            {fine.status !== "NONE" && (
+              <div className="flex flex-row items-center gap-1">
+                <Image
+                  src={
+                    fine.status === "UNPAID"
+                      ? "/icons/warning.svg"
+                      : "/icons/tick.svg"
+                  }
+                  alt=""
+                  aria-hidden="true"
+                  width={18}
+                  height={18}
+                />
+                <FineStatus status={fine.status} amount={fine.amount} />
+              </div>
+            )}
           </div>
         </div>
       </Link>
