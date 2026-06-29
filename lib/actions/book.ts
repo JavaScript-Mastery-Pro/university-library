@@ -1,6 +1,7 @@
 "use server";
 
 import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
 import { revalidatePath } from "next/cache";
 import {
   and,
@@ -10,6 +11,7 @@ import {
   eq,
   getTableColumns,
   ilike,
+  lt,
   ne,
   or,
   sql,
@@ -20,6 +22,14 @@ import { db } from "@/database/drizzle";
 import { books, borrowRecords, users } from "@/database/schema";
 import { workflowClient } from "../workflow";
 import config from "../config";
+import { computeFine } from "../fines";
+
+// Anchor every "today"/due-date computation to UTC so they line up with the
+// UTC-midnight day arithmetic in `computeFine` (ADR 0001, RECOMMEND D). Without
+// this, a server in a timezone behind UTC could read a different calendar day
+// near midnight than the fine helper, producing an off-by-one in the overdue
+// diff and the borrow gate. `dayjs.extend` is idempotent.
+dayjs.extend(utc);
 
 const ITEMS_PER_PAGE = 20;
 
@@ -42,7 +52,41 @@ export async function borrowBook(params: BorrowBookParams) {
       };
     }
 
-    const dueDate = dayjs().add(7, "day").toDate().toDateString();
+    // Borrow gate (ADR 0001, RECOMMEND E): block users with an unsettled
+    // obligation. First clause catches finalized unpaid fines; the second
+    // catches live-overdue unreturned books (whose fine isn't frozen yet),
+    // closing the loophole. Single-table scan on `userId`.
+    const today = dayjs.utc().format("YYYY-MM-DD");
+    const [obligation] = await db
+      .select({ id: borrowRecords.id })
+      .from(borrowRecords)
+      .where(
+        and(
+          eq(borrowRecords.userId, userId),
+          or(
+            eq(borrowRecords.fineStatus, "UNPAID"),
+            and(
+              ne(borrowRecords.status, "RETURNED"),
+              lt(borrowRecords.dueDate, today)
+            )
+          )
+        )
+      )
+      .limit(1);
+
+    if (obligation) {
+      return {
+        success: false,
+        error:
+          "You have an outstanding late fine or an overdue book. Resolve it before borrowing.",
+      };
+    }
+
+    // Store the `date` column as a bare ISO `YYYY-MM-DD` (UTC), the exact shape
+    // `computeFine` parses back with `dayjs.utc`. `.toDateString()` produced a
+    // locale string like "Mon Jul 06 2026" and used the server's local day —
+    // both fragile inputs to the date column and the fine diff.
+    const dueDate = dayjs.utc().add(7, "day").format("YYYY-MM-DD");
 
     const record = await db.insert(borrowRecords).values({
       userId,
@@ -100,6 +144,7 @@ export async function returnBook(params: ReturnBookParams) {
         userId: borrowRecords.userId,
         bookId: borrowRecords.bookId,
         status: borrowRecords.status,
+        dueDate: borrowRecords.dueDate,
       })
       .from(borrowRecords)
       .where(eq(borrowRecords.id, recordId))
@@ -126,13 +171,27 @@ export async function returnBook(params: ReturnBookParams) {
       };
     }
 
-    const returnDate = dayjs().toDate().toDateString();
+    // Normalized to ISO `YYYY-MM-DD` in UTC so it stores cleanly in the `date`
+    // column and feeds the UTC-anchored fine helper without timezone drift —
+    // the same anchor `computeFine` uses for the day diff.
+    const returnDate = dayjs.utc().format("YYYY-MM-DD");
+
+    // Freeze the fine at return time (ADR 0001, RECOMMEND C): a future rate
+    // change must never alter a settled debt. Within grace → no fine (stays
+    // NONE/null); overdue → UNPAID with the frozen amount. Written in the same
+    // guarded UPDATE so it commits atomically with the status flip.
+    const fine = computeFine(record.dueDate, returnDate);
+    const fineFields =
+      fine > 0
+        ? { fineAmount: fine.toFixed(2), fineStatus: "UNPAID" as const }
+        : {};
 
     const [updated] = await db
       .update(borrowRecords)
       .set({
         status: "RETURNED",
         returnDate,
+        ...fineFields,
       })
       .where(
         and(

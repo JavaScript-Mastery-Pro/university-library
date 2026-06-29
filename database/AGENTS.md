@@ -35,6 +35,7 @@ npm run seed
 
 - All table columns use `uuid` primary keys with `defaultRandom()` — never insert your own ID.
 - `borrowRecords.dueDate` is a `date` string (not timestamp); `borrowDate`/`createdAt` are `timestamp with timezone`.
+- `borrowRecords.fineAmount` is `numeric(10,2)` (null until finalized at return); `fineStatus` is `fine_status_enum` (never null, default 'NONE'); `fineSettledAt` is `timestamp with timezone` (set only when admin marks PAID or WAIVED) — see ADR 0001.
 - Enums are defined in `schema.ts` as `pgEnum` and referenced as column types — add new enum values there, then generate a migration.
 - `db` is imported from `@/database/drizzle`; never instantiate a second Drizzle client.
 - `redis` is imported from `@/database/redis`; never instantiate a second Redis client.

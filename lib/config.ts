@@ -16,6 +16,15 @@ const config = {
     },
     resendToken: process.env.RESEND_TOKEN,
   },
+  // Late-fine domain constants (ADR 0001). These are NOT secrets — never read
+  // them via process.env. `computeFine` (lib/fines.ts) and the live-accrual
+  // display are the only consumers.
+  fines: {
+    ratePerDay: 1.0, // USD charged per chargeable overdue day
+    graceDays: 1, // first overdue day is free
+    maxFine: 20.0, // USD cap on a single fine
+    currency: "USD",
+  },
 };
 
 export default config;

@@ -12,10 +12,10 @@ The admin area provides a separate dashboard for library staff. It is a distinct
 | `app/admin/page.tsx` | Dashboard home with stats |
 | `app/admin/books/` | Book list, new-book form, and edit-book page |
 | `app/admin/users/` | User list and user detail |
-| `app/admin/borrow-records/` | All borrow records view |
+| `app/admin/borrow-records/` | All borrow records view; displays live/finalized fines via `FineStatus` component |
 | `app/admin/account-requests/` | Pending user account approval queue |
 | `components/admin/` | Admin-specific UI components (Sidebar, Header, BookStripe, UserCard, etc.) |
-| `lib/admin/actions/` | Server actions for admin operations (book CRUD, user status, general stats) |
+| `lib/admin/actions/` | Server actions for admin operations (book CRUD, user status, general stats); includes `markFinePaid` and `waiveFine` for fine settlement (ADR 0001) |
 | `styles/admin.css` | Admin-only CSS — imported only inside admin layout |
 
 ## Conventions

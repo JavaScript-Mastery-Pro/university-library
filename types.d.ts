@@ -44,11 +44,12 @@ interface BorrowRecord {
   dueDate: string;
   returnDate: string | null;
   status: string;
-  // Late-fine fields (ADR 0001). Optional until the data-model migration lands;
-  // the UI currently sources these from a placeholder helper (lib/placeholder/fines.ts).
-  fineAmount?: string | null;
-  fineStatus?: FineStatus;
-  fineSettledAt?: string | null;
+  // Late-fine fields (ADR 0001), now backed by real columns on borrow_records.
+  // `fineAmount` (numeric) and `fineSettledAt` (timestamptz) are null until a fine is
+  // frozen at return / settled by an admin; `fineStatus` is NOT NULL, default "NONE".
+  fineAmount: string | null;
+  fineStatus: FineStatus;
+  fineSettledAt: Date | null;
 }
 
 interface BorrowedBook extends Book {
@@ -106,4 +107,8 @@ interface UpdateAccountStatusParams {
 
 interface UpdateBookParams extends BookParams {
   bookId: string;
+}
+
+interface FineActionParams {
+  recordId: string;
 }

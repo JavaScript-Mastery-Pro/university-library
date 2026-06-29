@@ -5,6 +5,7 @@ import {
   varchar,
   pgEnum,
   date,
+  numeric,
   timestamp,
   uuid,
 } from "drizzle-orm/pg-core";
@@ -15,6 +16,12 @@ const BORROW_STATUS_ENUM = pgEnum("borrow_status", [
   "OVERDUE",
   "BORROWED",
   "RETURNED",
+]);
+const FINE_STATUS_ENUM = pgEnum("fine_status", [
+  "NONE",
+  "UNPAID",
+  "PAID",
+  "WAIVED",
 ]);
 
 export const users = pgTable("users", {
@@ -62,5 +69,11 @@ export const borrowRecords = pgTable("borrow_records", {
   dueDate: date("due_date").notNull(),
   returnDate: date("return_date"),
   status: BORROW_STATUS_ENUM("status").default("BORROWED").notNull(),
+  // Late-fine fields (ADR 0001). `fineAmount` is null until frozen at return;
+  // `fineStatus` defaults to NONE; `fineSettledAt` is set when an admin marks
+  // the fine PAID or WAIVED.
+  fineAmount: numeric("fine_amount", { precision: 10, scale: 2 }),
+  fineStatus: FINE_STATUS_ENUM("fine_status").default("NONE").notNull(),
+  fineSettledAt: timestamp("fine_settled_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });

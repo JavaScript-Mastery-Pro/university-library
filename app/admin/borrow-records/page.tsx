@@ -17,7 +17,7 @@ import Menu from "@/components/admin/Menu";
 import FineStatus from "@/components/FineStatus";
 import { borrowStatuses } from "@/constants";
 import { getBorrowRecords } from "@/lib/admin/actions/book";
-import { getPlaceholderFine } from "@/lib/placeholder/fines";
+import { getFineDisplay } from "@/lib/fines";
 
 const Page = async ({ searchParams }: PageProps) => {
   const { query, sort, page } = await searchParams;
@@ -97,7 +97,7 @@ const Page = async ({ searchParams }: PageProps) => {
                   </TableCell>
                   <TableCell>
                     {(() => {
-                      const fine = getPlaceholderFine(record.borrow);
+                      const fine = getFineDisplay(record.borrow);
                       return (
                         <FineStatus
                           status={fine.status}

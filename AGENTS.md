@@ -37,7 +37,7 @@ npm run db:studio
 
 ## ADRs
 
-No `docs/adr/` directory exists yet.
+- [0001: Late fines as columns on borrow_records](docs/adr/0001-late-fines-on-borrow-records.md)
 
 ## Rules
 

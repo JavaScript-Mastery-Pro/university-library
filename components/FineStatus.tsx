@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { formatFine } from "@/lib/placeholder/fines";
+import { formatFine, formatFineSpoken } from "@/lib/fines";
 
 interface Props {
   status: FineStatus;
@@ -27,7 +27,8 @@ const FineStatus = ({ status, amount, showNone = false, className }: Props) => {
 
   const { bg, text } = STYLE[status];
 
-  // Visible label is concise; a screen-reader-only label spells out the amount.
+  // Visible label is concise and uses the "$" glyph; the screen-reader-only
+  // label spells the currency out in words so the amount is read reliably.
   const visibleLabel =
     status === "UNPAID"
       ? `Owed ${formatFine(amount)}`
@@ -35,12 +36,13 @@ const FineStatus = ({ status, amount, showNone = false, className }: Props) => {
         ? "Paid"
         : "Waived";
 
+  const spoken = formatFineSpoken(amount);
   const srLabel =
     status === "UNPAID"
-      ? `Late fine owed: ${formatFine(amount)}`
+      ? `Late fine owed: ${spoken}`
       : status === "PAID"
-        ? `Late fine of ${formatFine(amount)} paid`
-        : `Late fine of ${formatFine(amount)} waived`;
+        ? `Late fine of ${spoken} paid`
+        : `Late fine of ${spoken} waived`;
 
   return (
     <span

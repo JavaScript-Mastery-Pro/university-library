@@ -10,6 +10,7 @@ import {
   and,
   getTableColumns,
 } from "drizzle-orm";
+import { revalidatePath } from "next/cache";
 
 import { db } from "@/database/drizzle";
 import { books, borrowRecords, users } from "@/database/schema";
@@ -230,6 +231,74 @@ export async function getBook({ id }: { id: string }) {
     return {
       success: false,
       error: "Error getting book",
+    };
+  }
+}
+
+/**
+ * Settle an outstanding fine (ADR 0001). Admin-only — gated by the live DB role
+ * check in `app/admin/layout.tsx`; the session token alone is never trusted, so
+ * these actions carry no extra role check (consistent with the other admin
+ * actions in this file).
+ *
+ * `markFinePaid` → PAID (collected), `waiveFine` → WAIVED (forgiven). Both are
+ * terminal: the guarded `WHERE fine_status = 'UNPAID'` makes them idempotent and
+ * rejects a record that isn't currently UNPAID (already settled, or never fined).
+ */
+async function settleFine(
+  recordId: string,
+  to: "PAID" | "WAIVED"
+): Promise<{ success: boolean; data?: unknown; error?: string }> {
+  const [updated] = await db
+    .update(borrowRecords)
+    .set({
+      fineStatus: to,
+      fineSettledAt: new Date(),
+    })
+    .where(
+      and(
+        eq(borrowRecords.id, recordId),
+        eq(borrowRecords.fineStatus, "UNPAID")
+      )
+    )
+    .returning();
+
+  if (!updated) {
+    return {
+      success: false,
+      error: "No unpaid fine found for this record",
+    };
+  }
+
+  // Reflect the new fine state on the admin borrow-records list immediately.
+  revalidatePath("/admin/borrow-records");
+
+  return {
+    success: true,
+    data: JSON.parse(JSON.stringify(updated)),
+  };
+}
+
+export async function markFinePaid({ recordId }: FineActionParams) {
+  try {
+    return await settleFine(recordId, "PAID");
+  } catch (error) {
+    console.error("Error marking fine paid:", error);
+    return {
+      success: false,
+      error: "Error marking fine paid",
+    };
+  }
+}
+
+export async function waiveFine({ recordId }: FineActionParams) {
+  try {
+    return await settleFine(recordId, "WAIVED");
+  } catch (error) {
+    console.error("Error waiving fine:", error);
+    return {
+      success: false,
+      error: "Error waiving fine",
     };
   }
 }

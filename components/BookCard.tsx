@@ -7,7 +7,7 @@ import BookReceipt from "./BookReceipt";
 import ReturnBook from "./ReturnBook";
 import FineStatus from "./FineStatus";
 
-import { getPlaceholderFine } from "@/lib/placeholder/fines";
+import { getFineDisplay } from "@/lib/fines";
 
 export const NormalBook = ({
   id,
@@ -39,8 +39,8 @@ export const BorrowedBook = (props: BorrowedBook) => {
   const isReturned = status === "RETURNED";
   const isOverDue = daysLeft < 0 && status === "BORROWED";
 
-  // Placeholder fine (ADR 0001, sub-task #2) — swapped for stored values at wire-up.
-  const fine = getPlaceholderFine(borrow);
+  // Stored fine when frozen/settled, else live accrual (ADR 0001).
+  const fine = getFineDisplay(borrow);
 
   return (
     <li className="borrowed-book">
