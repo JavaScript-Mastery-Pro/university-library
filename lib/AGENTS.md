@@ -14,7 +14,7 @@ Contains all server-side business logic: server actions (public and admin), envi
 | `lib/workflow.ts` | `workflowClient` (Upstash Workflow), `qstashClient`, `sendEmail` helper |
 | `lib/utils.ts` | General utilities (`cn` class merger, etc.) |
 | `lib/actions/auth.ts` | `signUp` and `signInWithCredentials` server actions |
-| `lib/actions/book.ts` | `borrowBook`, `getBorrowedBooks`, `searchBooks` server actions |
+| `lib/actions/book.ts` | `borrowBook`, `returnBook`, `getBorrowedBooks`, `searchBooks` server actions |
 | `lib/admin/actions/book.ts` | Admin server actions for book CRUD |
 | `lib/admin/actions/user.ts` | Admin server actions for user management |
 | `lib/admin/actions/general.ts` | Admin server actions for dashboard stats and cross-entity queries |
