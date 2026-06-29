@@ -62,6 +62,19 @@
     @apply py-4 lg:px-16 px-10 flex justify-center items-center w-full rounded-lg;
   }
 
+  /* Self-return */
+  .return-book_btn {
+    @apply mt-3 min-h-12 w-full bg-primary font-bebas-neue text-base text-dark-100 hover:bg-primary/90 !important;
+  }
+
+  .return-book_done {
+    @apply mt-3 min-h-12 w-full flex flex-row items-center justify-center gap-2 rounded-md bg-green-100 font-bebas-neue text-base text-green-800;
+  }
+
+  .return-book_error {
+    @apply text-sm font-medium text-red-500;
+  }
+
   /* Book Cover */
   .book-cover_extra_small {
     @apply w-[28.95px] h-10;

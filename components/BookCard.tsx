@@ -4,6 +4,7 @@ import Image from "next/image";
 
 import BookCover from "./BookCover";
 import BookReceipt from "./BookReceipt";
+import ReturnBook from "./ReturnBook";
 
 export const NormalBook = ({
   id,
@@ -28,7 +29,7 @@ export const NormalBook = ({
 
 export const BorrowedBook = (props: BorrowedBook) => {
   const { id, title, genre, coverColor, coverUrl, borrow } = props;
-  const { borrowDate, dueDate, returnDate, status } = borrow;
+  const { id: recordId, borrowDate, dueDate, returnDate, status } = borrow;
 
   const daysLeft = dayjs(dueDate).diff(dayjs(), "day");
 
@@ -106,6 +107,13 @@ export const BorrowedBook = (props: BorrowedBook) => {
           </div>
         </div>
       </Link>
+
+      <ReturnBook
+        recordId={recordId}
+        bookId={id}
+        title={title}
+        initialReturned={isReturned}
+      />
     </li>
   );
 };
