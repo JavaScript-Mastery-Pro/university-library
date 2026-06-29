@@ -56,7 +56,7 @@ Extends existing `borrowRecords` (already has `returnDate`/`status`) and the bor
 - [x] Backend & API — `/develop self-return action — returnBook server action in lib/actions/book.ts: set status=RETURNED + returnDate=now, increment books.availableCopies, guard caller owns the record and it is not already returned`
 - [x] Data integration — `/develop self-return wire-up — swap placeholder for real returnBook in my-profile, revalidate path, loading/error/empty states`
 - [ ] Validation & edge cases — `/develop self-return edge cases — double-return, returning another user's record, availableCopies not exceeding totalCopies, OVERDUE record finalizing its fine (after #2)`
-- [ ] Accessibility — `/develop self-return a11y — dialog focus trap, button labelling, status announced via aria-live`
+- [x] Accessibility — `/develop self-return a11y — dialog focus trap, button labelling, status announced via aria-live`
 > ADR: — · Code area: `lib/actions/book.ts` (returnBook + `revalidatePath`), `components/ReturnBook.tsx`, `components/BookCard.tsx`
 
 ### 2. Late fines  ·  Needs ADR: yes  ·  Status: planned

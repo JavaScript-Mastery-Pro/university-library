@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { Button } from "./ui/button";
 import {
@@ -34,8 +34,22 @@ const ReturnBook = ({ recordId, title, initialReturned }: Props) => {
   const [status, setStatus] = useState<Status>("idle");
   const [returned, setReturned] = useState(Boolean(initialReturned));
 
+  // On success the dialog closes and its trigger unmounts (replaced by the
+  // "Returned" badge), so Radix's focus-return would drop focus to <body>.
+  // Move focus to the badge instead — but only when the user returns it in this
+  // session, not when the row mounted already-returned.
+  const doneRef = useRef<HTMLDivElement>(null);
+  const justReturned = useRef(false);
+
   const isReturning = status === "returning";
   const isError = status === "error";
+
+  useEffect(() => {
+    if (returned && justReturned.current) {
+      doneRef.current?.focus();
+      justReturned.current = false;
+    }
+  }, [returned]);
 
   const handleReturn = async () => {
     setStatus("returning");
@@ -44,6 +58,7 @@ const ReturnBook = ({ recordId, title, initialReturned }: Props) => {
       const result = await returnBook({ recordId });
 
       if (result.success) {
+        justReturned.current = true;
         setReturned(true);
         setStatus("idle");
         setOpen(false);
@@ -73,9 +88,12 @@ const ReturnBook = ({ recordId, title, initialReturned }: Props) => {
   if (returned) {
     return (
       <div
+        ref={doneRef}
+        tabIndex={-1}
         className="return-book_done"
         role="status"
         aria-live="polite"
+        aria-atomic="true"
       >
         <Image
           src="/icons/tick.svg"
@@ -100,7 +118,10 @@ const ReturnBook = ({ recordId, title, initialReturned }: Props) => {
       }}
     >
       <DialogTrigger asChild>
-        <Button className="return-book_btn">
+        <Button
+          className="return-book_btn"
+          aria-label={`Return book: ${title}`}
+        >
           <Image
             src="/icons/book.svg"
             alt=""
@@ -130,6 +151,7 @@ const ReturnBook = ({ recordId, title, initialReturned }: Props) => {
         <p
           role="status"
           aria-live="polite"
+          aria-atomic="true"
           className={isError ? "return-book_error" : "sr-only"}
         >
           {isReturning
@@ -145,7 +167,11 @@ const ReturnBook = ({ recordId, title, initialReturned }: Props) => {
               Cancel
             </Button>
           </DialogClose>
-          <Button onClick={handleReturn} disabled={isReturning}>
+          <Button
+            onClick={handleReturn}
+            disabled={isReturning}
+            aria-busy={isReturning}
+          >
             {isReturning
               ? "Returning…"
               : isError
