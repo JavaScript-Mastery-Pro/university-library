@@ -7,6 +7,7 @@ import { auth, signOut } from "@/auth";
 import Avatar from "@/components/Avatar";
 import BookList from "@/components/BookList";
 import NotFound from "@/components/NotFound";
+import ReservationList from "@/components/ReservationList";
 import { Button } from "@/components/ui/button";
 
 import { db } from "@/database/drizzle";
@@ -14,6 +15,7 @@ import { users } from "@/database/schema";
 
 import config from "@/lib/config";
 import { getBorrowedBooks } from "@/lib/actions/book";
+import { getUserReservations } from "@/lib/actions/reservation";
 
 interface BorrowedBookProps {
   data: BorrowedBook[];
@@ -35,6 +37,10 @@ const Page = async () => {
   const { data: borrowedBooks, success } = (await getBorrowedBooks(
     session?.user?.id
   )) as BorrowedBookProps;
+
+  const { data: reservations = [] } = (await getUserReservations(
+    session.user.id
+  )) as { success: boolean; data?: ReservedBook[] };
 
   return (
     <>
@@ -110,7 +116,7 @@ const Page = async () => {
           </form>
         </div>
 
-        <div className="flex-1">
+        <div className="flex-1 space-y-16">
           {success &&
             (borrowedBooks.length > 0 ? (
               <BookList
@@ -124,6 +130,8 @@ const Page = async () => {
                 description="You haven't borrowed any books yet. Go to the library to borrow books."
               />
             ))}
+
+          <ReservationList title="My Reservations" reservations={reservations} />
         </div>
       </section>
     </>

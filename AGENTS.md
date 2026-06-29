@@ -38,6 +38,7 @@ npm run db:studio
 ## ADRs
 
 - [0001: Late fines as columns on borrow_records](docs/adr/0001-late-fines-on-borrow-records.md)
+- [0002: Book reservations as a queue with held copies](docs/adr/0002-book-reservations-hold-queue.md)
 
 ## Rules
 

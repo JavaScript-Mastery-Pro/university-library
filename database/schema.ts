@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
   integer,
   text,
@@ -8,6 +9,8 @@ import {
   numeric,
   timestamp,
   uuid,
+  index,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 
 const ROLE_ENUM = pgEnum("role", ["USER", "ADMIN"]);
@@ -22,6 +25,13 @@ const FINE_STATUS_ENUM = pgEnum("fine_status", [
   "UNPAID",
   "PAID",
   "WAIVED",
+]);
+const RESERVATION_STATUS_ENUM = pgEnum("reservation_status", [
+  "QUEUED",
+  "READY",
+  "FULFILLED",
+  "EXPIRED",
+  "CANCELLED",
 ]);
 
 export const users = pgTable("users", {
@@ -77,3 +87,37 @@ export const borrowRecords = pgTable("borrow_records", {
   fineSettledAt: timestamp("fine_settled_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
+
+// Book reservations / hold queue (ADR 0002). Queue position is derived at read
+// time from `(bookId, status, createdAt)` — never stored. `expiresAt` is set
+// only when a reservation transitions QUEUED → READY (now + holdWindowHours).
+export const reservations = pgTable(
+  "reservations",
+  {
+    id: uuid("id").notNull().primaryKey().defaultRandom().unique(),
+    userId: uuid("user_id")
+      .references(() => users.id)
+      .notNull(),
+    bookId: uuid("book_id")
+      .references(() => books.id)
+      .notNull(),
+    status: RESERVATION_STATUS_ENUM("status").default("QUEUED").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+  },
+  (table) => [
+    // Dedup: at most one active reservation per (user, book). Partial unique
+    // index over active statuses only — terminal rows don't block re-reserving.
+    uniqueIndex("reservations_active_unique")
+      .on(table.userId, table.bookId)
+      .where(sql`status IN ('QUEUED', 'READY')`),
+    // Queue ordering + position derivation per book.
+    index("reservations_queue_idx").on(
+      table.bookId,
+      table.status,
+      table.createdAt,
+    ),
+  ],
+);

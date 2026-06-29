@@ -8,7 +8,7 @@ Owns the Drizzle ORM schema, the Neon serverless Postgres client, the Upstash Re
 
 | File | Owns |
 |---|---|
-| `database/schema.ts` | All Drizzle table definitions and pg enums (`users`, `books`, `borrowRecords`) |
+| `database/schema.ts` | All Drizzle table definitions and pg enums (`users`, `books`, `borrowRecords`, `reservations` + `fine_status_enum`, `reservation_status_enum`) |
 | `database/drizzle.ts` | Neon HTTP client + `db` export used by all server actions |
 | `database/redis.ts` | Upstash Redis client export used by ratelimit and auth adapter |
 | `database/seed.ts` | One-shot script to populate books; run via `npm run seed` |
@@ -36,6 +36,7 @@ npm run seed
 - All table columns use `uuid` primary keys with `defaultRandom()` — never insert your own ID.
 - `borrowRecords.dueDate` is a `date` string (not timestamp); `borrowDate`/`createdAt` are `timestamp with timezone`.
 - `borrowRecords.fineAmount` is `numeric(10,2)` (null until finalized at return); `fineStatus` is `fine_status_enum` (never null, default 'NONE'); `fineSettledAt` is `timestamp with timezone` (set only when admin marks PAID or WAIVED) — see ADR 0001.
+- `reservations` table (ADR 0002): tracks hold queue with `status` enum (QUEUED/READY/FULFILLED/EXPIRED/CANCELLED); `expiresAt` is set only when promoted to READY; partial unique index on `(userId, bookId)` WHERE status IN ('QUEUED','READY') enforces no duplicate active reservations.
 - Enums are defined in `schema.ts` as `pgEnum` and referenced as column types — add new enum values there, then generate a migration.
 - `db` is imported from `@/database/drizzle`; never instantiate a second Drizzle client.
 - `redis` is imported from `@/database/redis`; never instantiate a second Redis client.

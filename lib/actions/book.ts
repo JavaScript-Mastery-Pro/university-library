@@ -14,15 +14,15 @@ import {
   lt,
   ne,
   or,
-  sql,
 } from "drizzle-orm";
 
 import { auth } from "@/auth";
 import { db } from "@/database/drizzle";
-import { books, borrowRecords, users } from "@/database/schema";
+import { books, borrowRecords, reservations, users } from "@/database/schema";
 import { workflowClient } from "../workflow";
 import config from "../config";
 import { computeFine } from "../fines";
+import { promoteNextOrReleaseCopy } from "../reservations.server";
 
 // Anchor every "today"/due-date computation to UTC so they line up with the
 // UTC-midnight day arithmetic in `computeFine` (ADR 0001, RECOMMEND D). Without
@@ -45,11 +45,44 @@ export async function borrowBook(params: BorrowBookParams) {
       .where(eq(books.id, bookId))
       .limit(1);
 
-    if (!book.length || book[0].availableCopies <= 0) {
+    if (!book.length) {
       return {
         success: false,
         error: "Book is not available",
       };
+    }
+
+    // When there are no free copies, the only way to borrow is a copy held for
+    // THIS user by a live READY reservation (ADR 0002 RECOMMEND D). A READY hold
+    // past `expiresAt` is treated as not actionable — the enum can lie if the
+    // hold-expiry workflow run was lost (invariant #3). When fulfilled, the held
+    // copy becomes the borrowed copy: `availableCopies` is NOT decremented.
+    let heldReservationId: string | null = null;
+    if (book[0].availableCopies <= 0) {
+      const [ready] = await db
+        .select({ id: reservations.id, expiresAt: reservations.expiresAt })
+        .from(reservations)
+        .where(
+          and(
+            eq(reservations.userId, userId),
+            eq(reservations.bookId, bookId),
+            eq(reservations.status, "READY")
+          )
+        )
+        .limit(1);
+
+      const holdLive =
+        ready &&
+        (!ready.expiresAt || dayjs(ready.expiresAt).isAfter(dayjs()));
+
+      if (!holdLive) {
+        return {
+          success: false,
+          error: "Book is not available",
+        };
+      }
+
+      heldReservationId = ready.id;
     }
 
     // Borrow gate (ADR 0001, RECOMMEND E): block users with an unsettled
@@ -88,6 +121,31 @@ export async function borrowBook(params: BorrowBookParams) {
     // both fragile inputs to the date column and the fine diff.
     const dueDate = dayjs.utc().add(7, "day").format("YYYY-MM-DD");
 
+    // Fulfilling a held copy: claim the reservation BEFORE creating the borrow
+    // record, with a guarded UPDATE (ADR 0002 RECOMMEND G). If a concurrent
+    // hold-expiry run already flipped it to EXPIRED, zero rows match and we
+    // abort rather than borrow a copy that's no longer held for this user.
+    if (heldReservationId) {
+      const [fulfilled] = await db
+        .update(reservations)
+        .set({ status: "FULFILLED" })
+        .where(
+          and(
+            eq(reservations.id, heldReservationId),
+            eq(reservations.userId, userId),
+            eq(reservations.status, "READY")
+          )
+        )
+        .returning();
+
+      if (!fulfilled) {
+        return {
+          success: false,
+          error: "Your hold is no longer available.",
+        };
+      }
+    }
+
     const record = await db.insert(borrowRecords).values({
       userId,
       bookId,
@@ -95,12 +153,16 @@ export async function borrowBook(params: BorrowBookParams) {
       status: "BORROWED",
     });
 
-    await db
-      .update(books)
-      .set({
-        availableCopies: book[0].availableCopies - 1,
-      })
-      .where(eq(books.id, bookId));
+    // Held copy becomes the borrowed copy — `availableCopies` stays at 0 and is
+    // only decremented on a normal borrow from the free pool (ADR 0002).
+    if (!heldReservationId) {
+      await db
+        .update(books)
+        .set({
+          availableCopies: book[0].availableCopies - 1,
+        })
+        .where(eq(books.id, bookId));
+    }
 
     await workflowClient.trigger({
       url: `${config.env.prodApiEndpoint}/api/workflow/borrow-book`,
@@ -211,16 +273,18 @@ export async function returnBook(params: ReturnBookParams) {
       };
     }
 
-    await db
-      .update(books)
-      .set({
-        availableCopies: sql`${books.availableCopies} + 1`,
-      })
-      .where(eq(books.id, record.bookId));
+    // On-return hook (ADR 0002 RECOMMEND C + D): hand the freed copy to the
+    // front of the reservation queue (promote QUEUED → READY, hold the copy,
+    // trigger the hold-expiry workflow) instead of returning it to the pool.
+    // Only when the queue is empty is `availableCopies` incremented. This keeps
+    // the held-copy invariant intact — the freed copy is never simultaneously
+    // available AND held.
+    await promoteNextOrReleaseCopy(record.bookId);
 
-    // Refresh the borrowed-books list so the row flips to "Returned" and the
-    // freed copy is reflected without a manual reload.
+    // Refresh the borrowed-books list so the row flips to "Returned", and the
+    // book page so its Reserve button / availability reflects the promotion.
     revalidatePath("/my-profile");
+    revalidatePath(`/books/${record.bookId}`);
 
     return {
       success: true,

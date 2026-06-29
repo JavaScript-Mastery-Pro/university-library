@@ -57,6 +57,41 @@ interface BorrowedBook extends Book {
   user?: User;
 }
 
+// Reservations / waitlist (ADR 0002). A reservation holds a place in a
+// first-come-first-served queue for a fully-borrowed book; the front-of-queue
+// entry flips to READY (a copy held for 48h) when a copy is returned.
+type ReservationStatus =
+  | "QUEUED"
+  | "READY"
+  | "FULFILLED"
+  | "EXPIRED"
+  | "CANCELLED";
+
+interface Reservation {
+  id: string;
+  userId: string;
+  bookId: string;
+  status: ReservationStatus;
+  createdAt: Date;
+  // Set only when the reservation transitions to READY (now + holdWindowHours).
+  expiresAt: Date | null;
+}
+
+// A reservation joined with its book and derived queue position, for display.
+// `queuePosition` is the 1-based rank among QUEUED entries, null when not QUEUED.
+interface ReservedBook extends Book {
+  reservation: Reservation;
+  queuePosition: number | null;
+}
+
+interface ReserveBookParams {
+  bookId: string;
+}
+
+interface CancelReservationParams {
+  reservationId: string;
+}
+
 interface BookParams {
   title: string;
   author: string;

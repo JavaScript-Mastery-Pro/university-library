@@ -24,7 +24,7 @@ _This is the **next slice** on an existing app: theme = **complete the borrowing
 | —  | Admin: dashboard | — | — | existing | `app/admin/page.tsx` |
 | 1  | Self-return books | P0 | no | in-progress | `lib/actions/book.ts`, `components/ReturnBook.tsx`, `components/BookCard.tsx` |
 | 2  | Late fines | P0 | yes | planned | — |
-| 3  | Reservations / waitlist | P0 | yes | planned | — |
+| 3  | Reservations / waitlist | P0 | yes | done | `components/Reserve*`, `components/Reservation*`, `app/(root)/my-profile`, `lib/reservations*` |
 | 4  | Reviews & ratings | P1 | yes | planned | — |
 | 5  | Wishlist / favorites | P1 | yes | planned | — |
 | 6  | Password reset | P1 | yes | planned | — |
@@ -69,16 +69,16 @@ Extends existing `borrowRecords` (already has `returnDate`/`status`) and the bor
 - [x] Accessibility — `/develop late fines a11y — currency/amount readable by screen readers, paid badge has text label`
 > ADR: [0001](../adr/0001-late-fines-on-borrow-records.md) · Code area: `database/schema.ts`, `migrations/0004_nosy_pretty_boy.sql`, `types.d.ts`, `components/FineStatus.tsx`, `components/BookCard.tsx`, `app/admin/borrow-records/page.tsx`, `lib/fines.ts` (computeFine/getLiveFine/getFineDisplay/formatFine/formatFineSpoken), `lib/config.ts` (fines block), `lib/actions/book.ts` (borrow gate + return finalization), `lib/admin/actions/book.ts` (markFinePaid/waiveFine)
 
-### 3. Reservations / waitlist  ·  Needs ADR: yes  ·  Status: planned
-- [ ] Decision (ADR) — `/architect reservations — new reservations table (userId, bookId, status QUEUED/READY/EXPIRED/FULFILLED, createdAt, expiresAt), queue position, trigger to notify next user on return, hold expiry window, eligibility (can't reserve a book you hold)`
-- [ ] UI (placeholder data) — `/develop reservations UI — "Reserve" button on book detail when availableCopies=0, plus a "My reservations" section in my-profile, placeholder queue data + states`
-- [ ] Data model — `/develop reservations data model — create reservations table per ADR via npm run db:generate + db:migrate`
-- [ ] Backend & API — `/develop reservations API — reserveBook / cancelReservation actions, queue-position query, on-return hook to promote next reservation to READY`
-- [ ] External integration — `/develop reservations workflow — Upstash Workflow route to email the READY user and expire the hold after the window, hooking lib/workflow.ts`
-- [ ] Data integration — `/develop reservations wire-up — swap placeholder for real reservation data on book detail + my-profile`
-- [ ] Validation & edge cases — `/develop reservations edge cases — duplicate reservation, reserving an available book, race on the freed copy, expired hold returns copy to pool`
-- [ ] Accessibility — `/develop reservations a11y — reserve button states, queue position announced`
-> ADR: — · Code area: —
+### 3. Reservations / waitlist  ·  Needs ADR: yes  ·  Status: done
+- [x] Decision (ADR) — [0002](../adr/0002-book-reservations-hold-queue.md) — `/architect reservations — new reservations table (userId, bookId, status QUEUED/READY/EXPIRED/FULFILLED, createdAt, expiresAt), queue position, trigger to notify next user on return, hold expiry window, eligibility (can't reserve a book you hold)`
+- [x] UI (placeholder data) — `/develop reservations UI — "Reserve" button on book detail when availableCopies=0, plus a "My reservations" section in my-profile, placeholder queue data + states`
+- [x] Data model — `/develop reservations data model — create reservations table per ADR via npm run db:generate + db:migrate`
+- [x] Backend & API — `/develop reservations API — reserveBook / cancelReservation actions, queue-position query, on-return hook to promote next reservation to READY`
+- [x] External integration — `/develop reservations workflow — Upstash Workflow route to email the READY user and expire the hold after the window, hooking lib/workflow.ts`
+- [x] Data integration — `/develop reservations wire-up — swap placeholder for real reservation data on book detail + my-profile`
+- [x] Validation & edge cases — `/develop reservations edge cases — duplicate reservation, reserving an available book, race on the freed copy, expired hold returns copy to pool`
+- [x] Accessibility — `/develop reservations a11y — reserve button states, queue position announced`
+> ADR: [0002](../adr/0002-book-reservations-hold-queue.md) · Code area (UI): `components/ReserveBook.tsx`, `components/CancelReservation.tsx`, `components/ReservationStatus.tsx`, `components/ReservationCard.tsx`, `components/ReservationList.tsx`, `components/BookOverview.tsx`, `app/(root)/my-profile/page.tsx`, `lib/reservations.ts` (display helpers; placeholder module removed at data-integration), `lib/config.ts` (reservations block), `types.d.ts`, `app/globals.css` · Code area (data model): `database/schema.ts` (`reservations` table + `reservation_status` enum), `migrations/0005_youthful_shocker.sql` · Code area (backend): `lib/actions/reservation.ts` (reserveBook/cancelReservation/getUserReservations/getReservationForBook), `lib/reservations.server.ts` (promoteNextOrReleaseCopy), `lib/actions/book.ts` (returnBook on-return hook + borrowBook READY branch) · Code area (workflow): `app/api/workflow/reservation-hold/route.ts` (READY email → expiry-soon reminder → guarded expire + promote)
 
 ### 4. Reviews & ratings  ·  Needs ADR: yes  ·  Status: planned
 - [ ] Decision (ADR) — `/architect reviews — reviews table (userId, bookId, rating 1-5, body, createdAt), one-review-per-user-per-book, whether borrowing is required to review, how books.rating aggregate is recomputed, edit/delete + moderation`

@@ -25,6 +25,14 @@ const config = {
     maxFine: 20.0, // USD cap on a single fine
     currency: "USD",
   },
+  // Reservation / waitlist domain constants (ADR 0002). NOT secrets — never read
+  // via process.env. Consumed by the reservation display helpers (lib/reservations.ts)
+  // and, later, by reserveBook + the hold-expiry workflow.
+  reservations: {
+    holdWindowHours: 48, // how long a READY copy is held for the front of the queue
+    maxActiveReservations: 5, // cap on QUEUED + READY reservations per user
+    reminderBeforeHours: 24, // send the expiry-soon email at this much time remaining
+  },
 };
 
 export default config;

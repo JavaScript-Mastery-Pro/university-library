@@ -75,6 +75,50 @@
     @apply text-sm font-medium text-red-500;
   }
 
+  /* Reservations — book detail */
+  .reserve-book {
+    @apply mt-4 flex max-w-md flex-col gap-3 max-md:w-full;
+  }
+
+  .reserve-book_status {
+    @apply flex flex-col gap-2;
+  }
+
+  .reserve-book_btn {
+    @apply min-h-14 w-fit gap-2 bg-primary text-dark-100 hover:bg-primary/90 max-md:w-full !important;
+  }
+
+  /* Ineligible state: kept focusable via aria-disabled (see ReserveBook) but
+     visually dimmed and non-actionable so the disabled state isn't colour-only. */
+  .reserve-book_btn[aria-disabled="true"] {
+    @apply cursor-not-allowed opacity-50 hover:bg-primary;
+  }
+
+  .reserve-book_note {
+    @apply text-base text-light-100;
+  }
+
+  /* Reservations — profile card */
+  .reservation-card {
+    @apply gradient-vertical relative flex w-full flex-col rounded-2xl p-5 xs:w-min;
+  }
+
+  .reservation-card_cover {
+    @apply flex w-full items-center justify-center rounded-lg px-10 py-4 lg:px-16;
+  }
+
+  .reservation-card_meta {
+    @apply text-sm text-light-100;
+  }
+
+  .reservation-card_cancel {
+    @apply mt-4 min-h-12 w-full border-light-100/20 bg-transparent font-bebas-neue text-base text-light-100 hover:bg-dark-300 hover:text-light-100 !important;
+  }
+
+  .reservation-card_done {
+    @apply mt-4 flex min-h-12 w-full flex-row items-center justify-center gap-2 rounded-md bg-dark-300 font-bebas-neue text-base text-light-500;
+  }
+
   /* Book Cover */
   .book-cover_extra_small {
     @apply w-[28.95px] h-10;
