@@ -22,7 +22,7 @@ _This is the **next slice** on an existing app: theme = **complete the borrowing
 | —  | Admin: account requests | — | — | existing | `app/admin/account-requests` |
 | —  | Admin: borrow records | — | — | existing | `app/admin/borrow-records` |
 | —  | Admin: dashboard | — | — | existing | `app/admin/page.tsx` |
-| 1  | Self-return books | P0 | no | in-progress | `components/ReturnBook.tsx`, `components/BookCard.tsx`, `lib/self-return.placeholder.ts` |
+| 1  | Self-return books | P0 | no | in-progress | `lib/actions/book.ts`, `components/ReturnBook.tsx`, `components/BookCard.tsx` |
 | 2  | Late fines | P0 | yes | planned | — |
 | 3  | Reservations / waitlist | P0 | yes | planned | — |
 | 4  | Reviews & ratings | P1 | yes | planned | — |
@@ -53,11 +53,11 @@ _Deferred (not this slice): in-app notification center, automated test suite, pr
 ### 1. Self-return books  ·  Needs ADR: no  ·  Status: in-progress
 Extends existing `borrowRecords` (already has `returnDate`/`status`) and the borrow action — no new decision.
 - [x] UI (placeholder data) — `/develop self-return UI — add "Return book" button + confirm dialog to the borrowed-books list in app/(root)/my-profile, with returning/returned/error states using placeholder data`
-- [ ] Backend & API — `/develop self-return action — returnBook server action in lib/actions/book.ts: set status=RETURNED + returnDate=now, increment books.availableCopies, guard caller owns the record and it is not already returned`
-- [ ] Data integration — `/develop self-return wire-up — swap placeholder for real returnBook in my-profile, revalidate path, loading/error/empty states`
+- [x] Backend & API — `/develop self-return action — returnBook server action in lib/actions/book.ts: set status=RETURNED + returnDate=now, increment books.availableCopies, guard caller owns the record and it is not already returned`
+- [x] Data integration — `/develop self-return wire-up — swap placeholder for real returnBook in my-profile, revalidate path, loading/error/empty states`
 - [ ] Validation & edge cases — `/develop self-return edge cases — double-return, returning another user's record, availableCopies not exceeding totalCopies, OVERDUE record finalizing its fine (after #2)`
 - [ ] Accessibility — `/develop self-return a11y — dialog focus trap, button labelling, status announced via aria-live`
-> ADR: — · Code area: —
+> ADR: — · Code area: `lib/actions/book.ts` (returnBook + `revalidatePath`), `components/ReturnBook.tsx`, `components/BookCard.tsx`
 
 ### 2. Late fines  ·  Needs ADR: yes  ·  Status: planned
 - [ ] Decision (ADR) — `/architect late fines — data model (fine columns on borrowRecords vs separate fines table), per-day rate + config location, when fine is computed (on return vs scheduled), payment tracking (admin mark-paid, no payment provider this slice)`

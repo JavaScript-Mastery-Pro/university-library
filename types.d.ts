@@ -67,6 +67,10 @@ interface BorrowBookParams {
   userId: string;
 }
 
+interface ReturnBookParams {
+  recordId: string;
+}
+
 interface PageProps {
   searchParams: Promise<{
     query?: string;

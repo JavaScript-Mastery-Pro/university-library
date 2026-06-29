@@ -15,12 +15,13 @@ import {
   DialogTrigger,
 } from "./ui/dialog";
 import { toast } from "@/hooks/use-toast";
-import {
-  returnBookPlaceholder,
-  type ReturnBookParams,
-} from "@/lib/self-return.placeholder";
+import { returnBook } from "@/lib/actions/book";
 
-interface Props extends ReturnBookParams {
+interface Props {
+  recordId: string;
+  // Kept for the borrowed-book card; the action derives the book from the
+  // record itself, so bookId isn't sent to returnBook.
+  bookId: string;
   title: string;
   // True when the borrow record already has status === "RETURNED".
   initialReturned?: boolean;
@@ -28,7 +29,7 @@ interface Props extends ReturnBookParams {
 
 type Status = "idle" | "returning" | "error";
 
-const ReturnBook = ({ recordId, bookId, title, initialReturned }: Props) => {
+const ReturnBook = ({ recordId, title, initialReturned }: Props) => {
   const [open, setOpen] = useState(false);
   const [status, setStatus] = useState<Status>("idle");
   const [returned, setReturned] = useState(Boolean(initialReturned));
@@ -40,8 +41,7 @@ const ReturnBook = ({ recordId, bookId, title, initialReturned }: Props) => {
     setStatus("returning");
 
     try {
-      // PLACEHOLDER call — swapped for the real returnBook action at wire-up.
-      const result = await returnBookPlaceholder({ recordId, bookId });
+      const result = await returnBook({ recordId });
 
       if (result.success) {
         setReturned(true);

@@ -1,6 +1,7 @@
 "use server";
 
 import dayjs from "dayjs";
+import { revalidatePath } from "next/cache";
 import {
   and,
   asc,
@@ -9,9 +10,12 @@ import {
   eq,
   getTableColumns,
   ilike,
+  ne,
   or,
+  sql,
 } from "drizzle-orm";
 
+import { auth } from "@/auth";
 import { db } from "@/database/drizzle";
 import { books, borrowRecords, users } from "@/database/schema";
 import { workflowClient } from "../workflow";
@@ -73,6 +77,101 @@ export async function borrowBook(params: BorrowBookParams) {
     return {
       success: false,
       error: "Error borrowing book",
+    };
+  }
+}
+
+export async function returnBook(params: ReturnBookParams) {
+  const { recordId } = params;
+
+  try {
+    // Ownership is checked against the authenticated session, never a
+    // caller-supplied id — a passed-in userId would make the guard meaningless.
+    const session = await auth();
+    if (!session?.user?.id) {
+      return {
+        success: false,
+        error: "You must be signed in to return a book",
+      };
+    }
+
+    const [record] = await db
+      .select({
+        userId: borrowRecords.userId,
+        bookId: borrowRecords.bookId,
+        status: borrowRecords.status,
+      })
+      .from(borrowRecords)
+      .where(eq(borrowRecords.id, recordId))
+      .limit(1);
+
+    if (!record) {
+      return {
+        success: false,
+        error: "Borrow record not found",
+      };
+    }
+
+    if (record.userId !== session.user.id) {
+      return {
+        success: false,
+        error: "You can only return books you borrowed",
+      };
+    }
+
+    if (record.status === "RETURNED") {
+      return {
+        success: false,
+        error: "This book has already been returned",
+      };
+    }
+
+    const returnDate = dayjs().toDate().toDateString();
+
+    const [updated] = await db
+      .update(borrowRecords)
+      .set({
+        status: "RETURNED",
+        returnDate,
+      })
+      .where(
+        and(
+          eq(borrowRecords.id, recordId),
+          eq(borrowRecords.userId, session.user.id),
+          // "not already returned" — an OVERDUE record is still returnable.
+          ne(borrowRecords.status, "RETURNED")
+        )
+      )
+      .returning();
+
+    // No row matched the guarded WHERE — a concurrent return won the race.
+    if (!updated) {
+      return {
+        success: false,
+        error: "This book has already been returned",
+      };
+    }
+
+    await db
+      .update(books)
+      .set({
+        availableCopies: sql`${books.availableCopies} + 1`,
+      })
+      .where(eq(books.id, record.bookId));
+
+    // Refresh the borrowed-books list so the row flips to "Returned" and the
+    // freed copy is reflected without a manual reload.
+    revalidatePath("/my-profile");
+
+    return {
+      success: true,
+      data: JSON.parse(JSON.stringify(updated)),
+    };
+  } catch (error) {
+    console.log(error);
+    return {
+      success: false,
+      error: "Error returning book",
     };
   }
 }
