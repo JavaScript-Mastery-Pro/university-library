@@ -60,14 +60,14 @@ Extends existing `borrowRecords` (already has `returnDate`/`status`) and the bor
 > ADR: — · Code area: `lib/actions/book.ts` (returnBook + `revalidatePath`), `components/ReturnBook.tsx`, `components/BookCard.tsx`
 
 ### 2. Late fines  ·  Needs ADR: yes  ·  Status: planned
-- [ ] Decision (ADR) — `/architect late fines — data model (fine columns on borrowRecords vs separate fines table), per-day rate + config location, when fine is computed (on return vs scheduled), payment tracking (admin mark-paid, no payment provider this slice)`
+- [x] Decision (ADR) — `/architect late fines — data model (fine columns on borrowRecords vs separate fines table), per-day rate + config location, when fine is computed (on return vs scheduled), payment tracking (admin mark-paid, no payment provider this slice)`
 - [ ] UI (placeholder data) — `/develop late fines UI — show owed amount + paid badge on my-profile borrowed list and admin borrow-records, with placeholder amounts`
 - [ ] Data model — `/develop late fines data model — add fine fields per ADR (e.g. fineAmount, finePaid, finePaidAt) via npm run db:generate + db:migrate`
 - [ ] Backend & API — `/develop late fines API — fine calculation helper (days overdue × rate), finalize on return, admin markFinePaid action in lib/admin/actions/book.ts`
 - [ ] Data integration — `/develop late fines wire-up — replace placeholder amounts with computed/stored values, revalidate`
 - [ ] Validation & edge cases — `/develop late fines edge cases — cap on max fine, returned-before-due (no fine), timezone in dueDate diff, rounding`
 - [ ] Accessibility — `/develop late fines a11y — currency/amount readable by screen readers, paid badge has text label`
-> ADR: — · Code area: —
+> ADR: [0001](../adr/0001-late-fines-on-borrow-records.md) · Code area: —
 
 ### 3. Reservations / waitlist  ·  Needs ADR: yes  ·  Status: planned
 - [ ] Decision (ADR) — `/architect reservations — new reservations table (userId, bookId, status QUEUED/READY/EXPIRED/FULFILLED, createdAt, expiresAt), queue position, trigger to notify next user on return, hold expiry window, eligibility (can't reserve a book you hold)`
